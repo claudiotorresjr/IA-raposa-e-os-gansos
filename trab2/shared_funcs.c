@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "shared_funcs.h"
+
 void get_enemy_move(char buf[MAXSTR], char grid[MAXSTR], Move *move)
 {
     // separa os elementos do string recebido
@@ -27,7 +28,7 @@ void get_enemy_move(char buf[MAXSTR], char grid[MAXSTR], Move *move)
             sscanf(strtok(NULL, " \n"), "%d", &(move->mov_adv_c[i]));
         }
     }
-    strncpy(grid, strtok(NULL, "."), MAXSTR);
+    strncpy(grid, buf, MAXSTR);
 }
 
 void show_received_moves(Move *move)

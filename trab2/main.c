@@ -7,11 +7,19 @@
 #include "tabuleiro.h"
 #include "shared_funcs.h"
 
+char *make_move(char grid[MAXSTR], Move *move)
+{
+    char *line = (char *)malloc(MAXSTR*sizeof(char));
+    line = "r m 5 4 5 3\n";
+
+    return line;
+}
+
 int main(int argc, char **argv)
 {
     char buf[MAXSTR];
     char grid[MAXSTR]; 
-    char *linha;
+    char *line;
 
     tabuleiro_conecta(argc, argv);
 
@@ -26,13 +34,23 @@ int main(int argc, char **argv)
         // show_received_moves(&move);
         // printf("%s", grid);
 
-        linha = readline(NULL);
-        if (linha[0] == '0')
+        // line = readline(NULL);
+
+        if (strcmp(buf, grid) == 0)
+        {
+            continue;
+        }
+
+        Move move2;
+        line = make_move(grid, &move2);
+
+        if (line[0] == '0')
         {
             break;
         }
-        sprintf(buf, "%s\n", linha);
-        free(linha);
+
+        sprintf(buf, "%s\n", line);
+
         tabuleiro_envia(buf);
     }
 
