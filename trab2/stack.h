@@ -11,6 +11,7 @@ typedef struct State
     char grid[MAXSTR];
     int min;
     int max;
+    char move_type;
     int new_pos[2];
     struct State *prev;
 } State;

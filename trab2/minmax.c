@@ -13,10 +13,12 @@ int distance_to_gooses(char grid[MAXSTR], int r, int c)
     {
         if (grid[POS(i, c)] == 'g')
         {
-            distance++;
             break;
         }
+        distance--;
     }
+
+    // if (distance == 0) distance = -100;
     return distance;
 }
 
@@ -39,7 +41,7 @@ int *find_r(char grid[MAXSTR])
     return NULL;
 }
 
-State *create_new_state(char grid[MAXSTR], char atual_player, char result[MAXSTR], int *r, int *c)
+State *create_new_state(char grid[MAXSTR], char atual_player, char tipo_mov, int *r, int *c)
 {
     int i;
     //acha onde ta o inicio do tabuleiro
@@ -52,37 +54,15 @@ State *create_new_state(char grid[MAXSTR], char atual_player, char result[MAXSTR
     }
     char *aux_grid = &(grid[i]);
 
-    char tipo_mov;
-    //verifica se a nova posicao ta livre
-    //se sim, move
-    // printf("%c %d %d %c\n", atual_player, r[1], c[1], aux_grid[POS(r[1], c[1])]);
-    if (aux_grid[POS(r[1], c[1])] == '-')
-    {
-        tipo_mov = 'm';
-    }
-    //se nao, salta
-    else if (atual_player == 'r' && aux_grid[POS(r[1], c[1])] == 'g')
-    {
-        tipo_mov = 's';
-    }
-    else
-    {
-        return NULL;
-    }
-
-    if (strlen(result) == 1)
-    {
-        sprintf(result + strlen(result), " %c %d %d", tipo_mov, r[0], c[0]);
-    }
-
     State *new = (State *)malloc(sizeof(State));
     new->max = MAX;
     new->prev = NULL;
     new->new_pos[0] = r[1];
     new->new_pos[1] = c[1];
+    new->move_type = tipo_mov;
 
     aplica(new->grid, grid, atual_player, tipo_mov, 1, r, c);
-    new->min = distance_to_gooses(new->grid, r[1], c[1]);
+    new->min = distance_to_gooses(&(new->grid[i]), r[1], c[1]);
 
     return new;
 }
@@ -90,9 +70,17 @@ State *create_new_state(char grid[MAXSTR], char atual_player, char result[MAXSTR
 char *minmax(State *state, char atual_player)
 {
     int depth = 0;
+    int move_type = 'm';
+    int init_pos[2];
     char save_player = atual_player;
     char *result = (char *)malloc(MAXSTR*sizeof(char));
     result[0] = save_player;
+    result[1] = '.';
+    result[2] = '.';
+    result[3] = '.';
+    result[4] = '.';
+    result[5] = '.';
+    result[6] = '.';
 
     StateQueue *queue = (StateQueue *)malloc(sizeof(StateQueue));
     queue->top = NULL;
@@ -143,32 +131,98 @@ char *minmax(State *state, char atual_player)
             {
                 for (int p_y = -1; p_y < 2; p_y++)
                 {
-                    if (p_x * p_y == 0 && p_x != p_y && pos_valida(r+p_x, c+p_y))
+                    if (p_x * p_y == 0 && p_x != p_y)
                     {
-                        move_r[1] = r+p_x;
-                        move_c[1] = c+p_y;
-                        states[s_pos++] = create_new_state(current->grid, atual_player, result, move_r, move_c);
+                        //verifica se a posicao q ta indo eh um ganso.
+                        //se for, a raposa pula pra proxima posicao livre, comendo o ganso
+                        char tipo_mov = 'm';
+                        // printf("pos: %d %d\n", p_x, p_y);
+                        int x = p_x;
+                        int y = p_y;
+                        if (current->grid[k+POS(r+p_x, c+p_y)] == 'g')
+                        {
+                            // printf("achei um ganso na nova pos\n");
+                            x *= 2;
+                            y *= 2;
+
+                            //se posicao nao tiver vazia, nao pula
+                            if (current->grid[k+POS(r+x, c+y)] != '-')
+                            {
+                                continue;
+                            }
+
+                            tipo_mov = 's';
+                        }
+                        move_r[1] = r+x;
+                        move_c[1] = c+y;
+
+                        if (pos_valida(move_r[1], move_c[1]))
+                        {
+                            // printf("pos: %d %d\n", move_r[1], move_c[1]);
+                            states[s_pos++] = create_new_state(current->grid, atual_player, tipo_mov, move_r, move_c);
+                        }
                     }
                 }
             }
 
             int min = states[0]->min;
             int p = 0;
-            for (int i = 1; i < 4; ++i)
+            // printf("mv: %c val: %d\n", states[0]->move_type, states[0]->min);
+            //se for salto, prefere ele
+            if (states[0]->move_type != 's')
             {
-                if (states[i] && states[i]->min < min)
+                for (int i = 1; i < 4; ++i)
                 {
-                    min = states[i]->min;
-                    p = i;
+                    // printf("mv: %c val: %d\n", states[i]->move_type, states[i]->min);
+                    if (states[i] && states[i]->min <= min)
+                    {
+                        min = states[i]->min;
+                        p = i;
+                        //se for salto, prefere ele
+                        if (states[i]->move_type == 's')
+                        {
+                            break;
+                        }
+                    }
                 }
             }
-            push(queue, states[p]);
+
+            //se for profundidade 0, eh o primeiro movimento. entao salva no result.
+            if (depth == 0)
+            {
+                if (states[p]->move_type == 'm')
+                {
+                    result[1] = ' ';
+                    result[2] = states[p]->move_type;
+                    result[3] = ' ';
+                    result[4] = r+'0';
+                    result[5] = ' ';
+                    result[6] = c+'0';
+                }
+                else
+                {
+                    result[1] = ' ';
+                    result[2] = states[p]->move_type;
+                    result[3] = ' ';
+                    result[4] = '2';
+                    result[5] = ' ';
+                    result[6] = r+'0';
+                    result[7] = ' ';
+                    result[8] = c+'0';
+
+                }
+                // sprintf(result + strlen(result), " %c %d %d", move_type, init_pos[0], init_pos[1]);
+                // move_type = states[p]->move_type;
+                // init_pos[0] = move_r[0];
+                // init_pos[1] = move_c[1];
+            }
 
             if (atual_player == save_player)
             {
-                printf("result: %s\n", result);
                 sprintf(result + strlen(result), " %d %d", states[p]->new_pos[0], states[p]->new_pos[1]);
             }
+
+            push(queue, states[p]);
             
             atual_player = 'g';
         }
@@ -184,7 +238,7 @@ char *minmax(State *state, char atual_player)
                 move_c[1] = move_c[0];
                 ganso_burro[0] = move_r[1];
                 ganso_burro[1] = move_c[1];
-                State *new = create_new_state(current->grid, atual_player, result, move_r, move_c);
+                State *new = create_new_state(current->grid, atual_player, 'm', move_r, move_c);
                 
                 push(queue, new);
 
@@ -204,7 +258,7 @@ char *minmax(State *state, char atual_player)
     
     sprintf(result + strlen(result), "\n");
 
-    // printf("result: %s", result);
+    printf("result: %s", result);
     return result;
 }
 

@@ -20,7 +20,6 @@ int main(int argc, char **argv) {
     if(linha[0] == '0')
       break;
     sprintf(buf, "%s\n", linha);
-    printf("fim:\n%s", buf);
     free(linha);
     tabuleiro_envia(buf);
   }

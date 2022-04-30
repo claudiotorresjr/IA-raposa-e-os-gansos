@@ -6,7 +6,7 @@
 
 int distance_to_gooses(char grid[MAXSTR], int r, int c);
 int *find_r(char grid[MAXSTR]);
-State *create_new_state(char grid[MAXSTR], char atual_player, char result[MAXSTR], int *r, int *c);
+State *create_new_state(char grid[MAXSTR], char atual_player, char tipo_mov, int *r, int *c);
 char *minmax(State *state, char atual_player);
 char *make_move(State *state, char role);
 
