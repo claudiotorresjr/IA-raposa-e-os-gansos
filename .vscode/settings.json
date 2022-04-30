@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "string": "c",
+        "random": "c",
+        "functional": "c",
+        "algorithm": "c",
+        "string.h": "c",
+        "shared_funcs.h": "c"
+    }
+}
