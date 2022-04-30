@@ -4,7 +4,7 @@
 
 #include "minmax.h"
 
-int ganso_burro[2] = {3, 4};
+int ganso_burro[2] = {3, 5};
 
 int distance_to_gooses(char grid[MAXSTR], int r, int c)
 {
@@ -55,6 +55,7 @@ State *create_new_state(char grid[MAXSTR], char atual_player, char result[MAXSTR
     char tipo_mov;
     //verifica se a nova posicao ta livre
     //se sim, move
+    // printf("%c %d %d %c\n", atual_player, r[1], c[1], aux_grid[POS(r[1], c[1])]);
     if (aux_grid[POS(r[1], c[1])] == '-')
     {
         tipo_mov = 'm';
@@ -127,6 +128,7 @@ char *minmax(State *state, char atual_player)
 
             move_r[0] = r;
             move_c[0] = c;
+            // printf("init %d %d\n", r, c);
 
             State *states[4];
 
@@ -141,46 +143,14 @@ char *minmax(State *state, char atual_player)
             {
                 for (int p_y = -1; p_y < 2; p_y++)
                 {
-                    if (p_x * p_y == 0 && p_x != p_y)
+                    if (p_x * p_y == 0 && p_x != p_y && pos_valida(r+p_x, c+p_y))
                     {
-                        if(pos_valida(r+p_x, c+p_y))
-                        {
-                            move_r[1] = r+p_x;
-                            move_c[1] = c+p_y;
-                            states[s_pos++] = create_new_state(current->grid, atual_player, result, move_r, move_c);
-                        }
-
+                        move_r[1] = r+p_x;
+                        move_c[1] = c+p_y;
+                        states[s_pos++] = create_new_state(current->grid, atual_player, result, move_r, move_c);
                     }
                 }
             }
-            // //verifica esquerda
-            // if(pos_valida(r, c-1))
-            // {
-            //     move_r[1] = r;
-            //     move_c[1] = c-1;
-            //     states[0] = create_new_state(current->grid, atual_player, result, move_r, move_c);
-            // }
-            // //verifica direita
-            // if(pos_valida(r, c+1))
-            // {
-            //     move_r[1] = r;
-            //     move_c[1] = c+1;
-            //     states[1] = create_new_state(current->grid, atual_player, result, move_r, move_c);
-            // }
-            // //verifica cima
-            // if(pos_valida(r-1, c))
-            // {
-            //     move_r[1] = r-1;
-            //     move_c[1] = c;
-            //     states[2] = create_new_state(current->grid, atual_player, result, move_r, move_c);
-            // }
-            // //verifica baixo
-            // if(pos_valida(r+1, c))
-            // {
-            //     move_r[1] = r+1;
-            //     move_c[1] = c;
-            //     states[3] = create_new_state(current->grid, atual_player, result, move_r, move_c);
-            // }
 
             int min = states[0]->min;
             int p = 0;
@@ -196,6 +166,7 @@ char *minmax(State *state, char atual_player)
 
             if (atual_player == save_player)
             {
+                printf("result: %s\n", result);
                 sprintf(result + strlen(result), " %d %d", states[p]->new_pos[0], states[p]->new_pos[1]);
             }
             
@@ -208,6 +179,7 @@ char *minmax(State *state, char atual_player)
             move_c[0] = ganso_burro[1];
             if(pos_valida(move_r[0]+1, move_c[0]))
             {
+                // printf("ganso %d %d\n", ganso_burro[0], ganso_burro[1]);
                 move_r[1] = move_r[0]+1;
                 move_c[1] = move_c[0];
                 ganso_burro[0] = move_r[1];
