@@ -7,7 +7,7 @@ objs = main.o minmax.o stack.o tabuleiro.o shared_funcs.o
 all: main
 
 main: $(objs)
-	$(CC) $(CFLAGS) $(objs) -o floodit $(LDLIBS)
+	$(CC) $(CFLAGS) $(objs) -o main $(LDLIBS)
 
 minmax: minmax.c minmax.h stack.h shared_funcs.h
 	$(CC) $(CFLAGS) minmax.c $(LDLIBS)

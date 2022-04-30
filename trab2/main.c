@@ -12,7 +12,6 @@
 int main(int argc, char **argv)
 {
     char buf[MAXSTR];
-    char grid[MAXSTR];
 
     tabuleiro_conecta(argc, argv);
 

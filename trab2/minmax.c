@@ -60,9 +60,13 @@ State *create_new_state(char grid[MAXSTR], char atual_player, char result[MAXSTR
         tipo_mov = 'm';
     }
     //se nao, salta
-    else
+    else if (atual_player == 'r' && aux_grid[POS(r[1], c[1])] == 'g')
     {
         tipo_mov = 's';
+    }
+    else
+    {
+        return NULL;
     }
 
     if (strlen(result) == 1)
@@ -71,7 +75,7 @@ State *create_new_state(char grid[MAXSTR], char atual_player, char result[MAXSTR
     }
 
     State *new = (State *)malloc(sizeof(State));
-    new->min = MIN;
+    new->max = MAX;
     new->prev = NULL;
     new->new_pos[0] = r[1];
     new->new_pos[1] = c[1];
@@ -128,34 +132,55 @@ char *minmax(State *state, char atual_player)
 
             //faz um estado novo para cada nova posicao e calcula o minmax
             //modificando o mapa atual com a nova posicao
-            //verifica esquerda
-            if(pos_valida(r, c-1))
+            // -1 0
+            // 0 -1
+            // 0 1
+            // 1 0
+            int s_pos = 0;
+            for (int p_x = -1; p_x < 2; p_x++)
             {
-                move_r[1] = r;
-                move_c[1] = c-1;
-                states[0] = create_new_state(current->grid, atual_player, result, move_r, move_c);
+                for (int p_y = -1; p_y < 2; p_y++)
+                {
+                    if (p_x * p_y == 0 && p_x != p_y)
+                    {
+                        if(pos_valida(r+p_x, c+p_y))
+                        {
+                            move_r[1] = r+p_x;
+                            move_c[1] = c+p_y;
+                            states[s_pos++] = create_new_state(current->grid, atual_player, result, move_r, move_c);
+                        }
+
+                    }
+                }
             }
-            //verifica direita
-            if(pos_valida(r, c+1))
-            {
-                move_r[1] = r;
-                move_c[1] = c+1;
-                states[1] = create_new_state(current->grid, atual_player, result, move_r, move_c);
-            }
-            //verifica cima
-            if(pos_valida(r-1, c))
-            {
-                move_r[1] = r-1;
-                move_c[1] = c;
-                states[2] = create_new_state(current->grid, atual_player, result, move_r, move_c);
-            }
-            //verifica baixo
-            if(pos_valida(r+1, c))
-            {
-                move_r[1] = r+1;
-                move_c[1] = c;
-                states[3] = create_new_state(current->grid, atual_player, result, move_r, move_c);
-            }
+            // //verifica esquerda
+            // if(pos_valida(r, c-1))
+            // {
+            //     move_r[1] = r;
+            //     move_c[1] = c-1;
+            //     states[0] = create_new_state(current->grid, atual_player, result, move_r, move_c);
+            // }
+            // //verifica direita
+            // if(pos_valida(r, c+1))
+            // {
+            //     move_r[1] = r;
+            //     move_c[1] = c+1;
+            //     states[1] = create_new_state(current->grid, atual_player, result, move_r, move_c);
+            // }
+            // //verifica cima
+            // if(pos_valida(r-1, c))
+            // {
+            //     move_r[1] = r-1;
+            //     move_c[1] = c;
+            //     states[2] = create_new_state(current->grid, atual_player, result, move_r, move_c);
+            // }
+            // //verifica baixo
+            // if(pos_valida(r+1, c))
+            // {
+            //     move_r[1] = r+1;
+            //     move_c[1] = c;
+            //     states[3] = create_new_state(current->grid, atual_player, result, move_r, move_c);
+            // }
 
             int min = states[0]->min;
             int p = 0;
