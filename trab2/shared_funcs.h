@@ -3,6 +3,11 @@
 
 #define MAXSTR 512
 #define MAXINT 16
+#define MIN -1000000
+#define MAX 1000000
+
+#define POS(l,c) ((l) * 10 + (c))
+#define ABS(x) ((x < 0)?(-(x)):(x))
 
 typedef struct Move
 {
@@ -15,7 +20,10 @@ typedef struct Move
     int mov_adv_c[MAXINT];
 } Move;
 
-void get_enemy_move(char buf[MAXSTR], char grid[MAXSTR], Move *move);
+void get_enemy_move(char *buf, Move *move);
 void show_received_moves(Move *move);
+int pos_valida(int l, int c);
+int aplica(char *buf, char *tabuleiro, char lado, char tipo,
+           int num_mov, int *mov_l, int *mov_c);
 
 #endif
