@@ -6,6 +6,10 @@
 #define MIN -1000000
 #define MAX 1000000
 
+#define FOGE 10
+#define PROTEGE 30
+#define AVANCA 5
+
 #define POS(l,c) ((l) * 10 + (c))
 #define ABS(x) ((x < 0)?(-(x)):(x))
 
