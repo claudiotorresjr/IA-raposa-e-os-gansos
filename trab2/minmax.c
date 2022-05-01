@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "minmax.h"
 
@@ -40,9 +41,9 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
     int x = r[1];
     int y = c[1];
 
-    for (int p_x = -2; p_x < 3; p_x++)
+    for (int p_x = -1; p_x < 2; p_x++)
     {
-        for (int p_y = -2; p_y < 3; p_y++)
+        for (int p_y = -1; p_y < 2; p_y++)
         {
             if (p_x * p_y == 0 && p_x != p_y)
             {
@@ -143,28 +144,69 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
                 {
                     return FOGE;
                 }
+                //se nao, verifica se ta do lado da raposa
+                else if (pos_valida(x+p_x, y+p_y) && grid[POS(x+p_x, y+p_y)] == 'r')
+                {
+                    return -PROTEGE;
+                }
             }
         }
     }
 
+    int *pos = find_r(grid);
+    int v = distance_to_gooses(grid, pos[0], pos[1]);
     //faz qualquer movimento
-    return AVANCA;
+    return AVANCA + ABS(v);
 }
 
 int distance_to_gooses(char grid[MAXSTR], int r, int c)
 {
-    int distance = 0;
-    for(int i = r; i < 8; ++i)
+    for (int s = 1; s < MAXSTR; ++s)
     {
-        if (grid[POS(i, c)] == 'g')
+        for (int i = r-s; i < r+s; ++i)
         {
-            break;
+            for (int j = c-s; j < c+s; ++j)
+            {
+                if(pos_valida(i, j) && grid[POS(i, j)] == 'g')
+                {
+                    int cont = 0;
+                    for (int p_x = -1; p_x < 2; p_x++)
+                    {
+                        for (int p_y = -1; p_y < 2; p_y++)
+                        {
+                            if (p_x * p_y == 0 && p_x != p_y)
+                            {
+                                //verifica se tem uma casa vazia proxima.
+                                //se tiver, a raposa vai atras desse ganso
+                                if (pos_valida(i+p_x, j+p_y) && grid[POS(i+p_x, j+p_y)] == '-')
+                                {
+                                    cont++;
+                                }
+                            }
+                        }
+                    }
+                    if (cont > 0)
+                    {
+                        return s+cont + rand() % 4;
+                    }
+                }
+            }
         }
-        distance--;
     }
 
-    // if (distance == 0) distance = -100;
-    return distance;
+    return 0;
+    
+    // int distance = 0;
+    // for(int i = r; i < 8; ++i)
+    // {
+    //     if (grid[POS(i, c)] == 'g')
+    //     {
+    //         break;
+    //     }
+    //     distance--;
+    // }
+
+    // return distance;
 }
 
 int *find_r(char grid[MAXSTR])
@@ -215,7 +257,7 @@ State *create_new_state(char grid[MAXSTR], char atual_player, char tipo_mov, int
     }
     else
     {
-        new->min = goose_score(&(new->grid[i]), r, c);
+        new->min = goose_score(&(new->grid[i]), r, c) + rand() % 20;
     }
 
     return new;
@@ -345,6 +387,15 @@ char *minmax(State *state, char atual_player)
                         }
                     }
                 }
+                
+                // while (1)
+                // {
+                //     p = rand() % 4;
+                //     if (states[p])
+                //     {
+                //         break;
+                //     }
+                // }
             }
 
             //se for profundidade 0, eh o primeiro movimento. entao salva no result.
@@ -454,6 +505,18 @@ char *minmax(State *state, char atual_player)
                     }
                 }
 
+                if (min == AVANCA)
+                {
+                    while (1)
+                    {
+                        p = rand() % 4;
+                        if (states[p])
+                        {
+                            break;
+                        }
+                    }
+                }
+
                 optimal_gooses[goose_idx] = (State *)malloc(sizeof(State));
                 strcpy(optimal_gooses[goose_idx]->grid, states[p]->grid);
                 optimal_gooses[goose_idx]->max = MAX;
@@ -475,6 +538,18 @@ char *minmax(State *state, char atual_player)
                 {
                     min = optimal_gooses[i]->min;
                     p = i;
+                }
+            }
+
+            if (min == AVANCA)
+            {
+                while (1)
+                {
+                    p = rand() % 26;
+                    if (optimal_gooses[p])
+                    {
+                        break;
+                    }
                 }
             }
             //se for profundidade 0, eh o primeiro movimento. entao salva no result.
@@ -511,6 +586,9 @@ char *minmax(State *state, char atual_player)
 
 char *make_move(State *state, char role)
 {
+
+    srand(time(NULL));   // Initialization, should only be called once.
+
     char *line = (char *)malloc(MAXSTR*sizeof(char));
     line = minmax(state, role);
 
