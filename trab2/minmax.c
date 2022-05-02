@@ -55,7 +55,7 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
                         //se for, esse movimento foi ruim pois deixou o ganso desprotegido
                         if(pos_valida(init_x+p_x+1, init_y+p_y) && grid[POS(init_x+p_x+1, init_y+p_y)] == 'r')
                         {
-                            return -PROTEGE;
+                            return -PROTEGE - rand() % 50;
                         }
                     }
                     //se o ganso protegido ta em cima
@@ -65,7 +65,7 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
                         //se for, esse movimento foi ruim pois deixou o ganso desprotegido
                         if(pos_valida(init_x+p_x-1, init_y+p_y) && grid[POS(init_x+p_x-1, init_y+p_y)] == 'r')
                         {
-                            return -PROTEGE;
+                            return -PROTEGE - rand() % 50;
                         }
 
                     }
@@ -76,7 +76,7 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
                         //se for, esse movimento foi ruim pois deixou o ganso desprotegido
                         if(pos_valida(init_x+p_x, init_y+p_y+1) && grid[POS(init_x+p_x, init_y+p_y+1)] == 'r')
                         {
-                            return -PROTEGE;
+                            return -PROTEGE - rand() % 50;
                         }
 
                     }
@@ -87,7 +87,7 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
                         //se for, esse movimento foi ruim pois deixou o ganso desprotegido
                         if(pos_valida(init_x+p_x, init_y+p_y-1) && grid[POS(init_x+p_x, init_y+p_y-1)] == 'r')
                         {
-                            return -PROTEGE;
+                            return -PROTEGE - rand() % 50;
                         }
 
                     }
@@ -102,7 +102,7 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
                         //verifica se protegeu um ganso embaixo, que embaixo dele tem a raposa
                         if(pos_valida(x+p_x+1, y+p_y) && grid[POS(x+p_x+1, y+p_y)] == 'r')
                         {
-                            return PROTEGE;
+                            return PROTEGE + rand() % 50;
                         }
                     }
                     //se o ganso protegido ta em cima
@@ -111,7 +111,7 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
                         //verifica se protegeu um ganso em cima, que em cima dele tem a raposa
                         if(pos_valida(x+p_x-1, y+p_y) && grid[POS(x+p_x-1, y+p_y)] == 'r')
                         {
-                            return PROTEGE;
+                            return PROTEGE + rand() % 50;
                         }
 
                     }
@@ -121,7 +121,7 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
                         //verifica se protegeu um ganso na direita, que na direita dele tem a raposa
                         if(pos_valida(x+p_x, y+p_y+1) && grid[POS(x+p_x, y+p_y+1)] == 'r')
                         {
-                            return PROTEGE;
+                            return PROTEGE + rand() % 50;
                         }
 
                     }
@@ -131,7 +131,7 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
                         //verifica se protegeu um ganso na esquerda, que na esquerda dele tem a raposa
                         if(pos_valida(x+p_x, y+p_y-1) && grid[POS(x+p_x, y+p_y-1)] == 'r')
                         {
-                            return PROTEGE;
+                            return PROTEGE + rand() % 50;
                         }
 
                     }
@@ -140,12 +140,12 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
                 //se nao, verifica se ta fugindo da raposa
                 else if (pos_valida(init_x+p_x, init_y+p_y) && grid[POS(init_x+p_x, init_y+p_y)] == 'r')
                 {
-                    return FOGE;
+                    return FOGE + rand() % 10;
                 }
                 //se nao, verifica se ta do lado da raposa
                 else if (pos_valida(x+p_x, y+p_y) && grid[POS(x+p_x, y+p_y)] == 'r')
                 {
-                    return -PROTEGE;
+                    return -PROTEGE - rand() % 30;
                 }
             }
         }
@@ -154,7 +154,7 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
     int *pos = find_r(grid);
     int v = distance_to_gooses(grid, pos[0], pos[1]);
     //faz qualquer movimento
-    return AVANCA + ABS(v);
+    return AVANCA + ABS(v) + rand() % 10;
 }
 
 int distance_to_gooses(char grid[MAXSTR], int r, int c)
@@ -279,7 +279,7 @@ State *create_new_state(char grid[MAXSTR], char atual_player, char tipo_mov, int
     else
     {
         new->role = 'r';
-        new->max = goose_score(&(new->grid[i]), r, c);
+        new->max = goose_score(&(new->grid[i]), r, c) + rand() % 10;
     }
 
     return new;
@@ -287,8 +287,8 @@ State *create_new_state(char grid[MAXSTR], char atual_player, char tipo_mov, int
 
 void minmax(StateList *list, State *state, char max, int depth)
 {
-    //se chegou na profundidade 5, acabou
-    if (depth == 2)
+    //se chegou na profundidade 6, acabou
+    if (depth == 6)
     {
         return;
     }
@@ -432,9 +432,9 @@ void minmax(StateList *list, State *state, char max, int depth)
                             //quando sai da recursao, se for o joador MAX, atualiza o MAX com o maior valor calculado pelo MIN(mesma coisa com o MIN)
                             if (state->role == max)
                             {
-                                if (list->list[depth] && list->list[depth]->move_type == 's')
+                                if (state->role == 'g' && new->min != AVANCA && (rand() % 10) > 1)
                                 {
-                                    
+                                    new->min = 1000;
                                 }
                                 // printf("%d %d\n", new->min, state->max);
                                 if (new->min > state->max)
@@ -478,7 +478,7 @@ char *make_move(State *state)
     StateList *list = (StateList *)malloc(sizeof(StateList));
     list->size = 0;
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 6; i++)
     {
         list->list[i] = NULL;
     }

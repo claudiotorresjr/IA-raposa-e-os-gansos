@@ -27,7 +27,7 @@ typedef struct StateQueue
 typedef struct StateList
 {
     int size;
-    struct State *list[3];
+    struct State *list[6];
 } StateList;
 
 void push(StateQueue *queue, State *s);
