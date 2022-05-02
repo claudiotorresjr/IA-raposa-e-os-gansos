@@ -24,13 +24,14 @@ int main(int argc, char **argv)
         strncpy(state->grid, buf, MAXSTR);
         state->min = MIN;
         state->max = MAX;
+        state->role = buf[0];
         state->prev = NULL;
         Move move;
 
         get_enemy_move(buf, &move);
         // show_received_moves(&move);
 
-        char *line = make_move(state, buf[0]);
+        char *line = make_move(state);
 
         if (line[0] == '0')
         {

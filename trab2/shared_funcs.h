@@ -3,8 +3,8 @@
 
 #define MAXSTR 512
 #define MAXINT 16
-#define MIN -1000000
-#define MAX 1000000
+#define MIN 100000
+#define MAX -100000
 
 #define FOGE 10
 #define PROTEGE 30

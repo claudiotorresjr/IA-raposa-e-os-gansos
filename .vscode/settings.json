@@ -5,6 +5,7 @@
         "functional": "c",
         "algorithm": "c",
         "string.h": "c",
-        "shared_funcs.h": "c"
+        "shared_funcs.h": "c",
+        "limits": "c"
     }
 }

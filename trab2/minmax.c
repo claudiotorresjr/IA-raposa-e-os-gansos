@@ -5,8 +5,6 @@
 
 #include "minmax.h"
 
-int ganso_burro[2] = {3, 5};
-
 int *gooses_to_move(char grid[MAXSTR], int r, int c)
 {
     //vetor que guarda a posicao de todos os gansos que estao em perigo
@@ -161,13 +159,23 @@ int goose_score(char grid[MAXSTR], int *r, int *c)
 
 int distance_to_gooses(char grid[MAXSTR], int r, int c)
 {
-    for (int s = 1; s < MAXSTR; ++s)
+    //salva a quantidade de casas livres ao redor do ganso, seguido do s
+    int pos[26];
+    int idx = 0;
+
+    int s;
+    char aux_grid[MAXSTR];
+    strcpy(aux_grid, grid);
+    //for para ir montando submatrizes tendo a raposa como elemento central
+    //o valor do s e a distancia de um possivel ganso, caso esse seja encontrado na submatriz
+    for (s = 1; s < 8; ++s)
     {
-        for (int i = r-s; i < r+s; ++i)
+        for (int i = r-s; i <= r+s; ++i)
         {
-            for (int j = c-s; j < c+s; ++j)
+            for (int j = c-s; j <= c+s; ++j)
             {
-                if(pos_valida(i, j) && grid[POS(i, j)] == 'g')
+                //se encontrar algum ganso na submatriz,
+                if(pos_valida(i, j) && aux_grid[POS(i, j)] == 'g')
                 {
                     int cont = 0;
                     for (int p_x = -1; p_x < 2; p_x++)
@@ -177,36 +185,40 @@ int distance_to_gooses(char grid[MAXSTR], int r, int c)
                             if (p_x * p_y == 0 && p_x != p_y)
                             {
                                 //verifica se tem uma casa vazia proxima.
-                                //se tiver, a raposa vai atras desse ganso
-                                if (pos_valida(i+p_x, j+p_y) && grid[POS(i+p_x, j+p_y)] == '-')
+                                if (pos_valida(i+p_x, j+p_y) && aux_grid[POS(i+p_x, j+p_y)] == '-')
                                 {
                                     cont++;
                                 }
                             }
                         }
                     }
-                    if (cont > 0)
-                    {
-                        return s+cont + rand() % 4;
-                    }
+
+                    //deixa posicao como visitada (retira o ganso)
+                    // aux_grid[POS(i, j)] = '!';
+
+                    //salva info do ganso encontrada
+                    pos[idx++] = cont;
+                    pos[idx++] = s;
                 }
             }
         }
+
+        //achou todos os gansos. s eh o mais distante
+        if (idx == 26)
+        {
+            break;
+        }
     }
 
-    return 0;
-    
-    // int distance = 0;
-    // for(int i = r; i < 8; ++i)
-    // {
-    //     if (grid[POS(i, c)] == 'g')
-    //     {
-    //         break;
-    //     }
-    //     distance--;
-    // }
+    //s servira como peso. gansos mais proximos da raposa tera o s como peso maximo que sera multiplicado
+    //pelo total de casas vazias ao redor. sao gansos mais propensos a serem devorados
+    int total = 0;
+    for (int i = 0; i < 26; i+=2)
+    {
+        total += pos[i]*(s - pos[i+1]);
+    }
 
-    // return distance;
+    return total;
 }
 
 int *find_r(char grid[MAXSTR])
@@ -228,7 +240,7 @@ int *find_r(char grid[MAXSTR])
     return NULL;
 }
 
-State *create_new_state(char grid[MAXSTR], char atual_player, char tipo_mov, int *r, int *c)
+State *create_new_state(char grid[MAXSTR], char atual_player, char tipo_mov, int *r, int *c, char max)
 {
     int i;
     //acha onde ta o inicio do tabuleiro
@@ -242,6 +254,7 @@ State *create_new_state(char grid[MAXSTR], char atual_player, char tipo_mov, int
 
     State *new = (State *)malloc(sizeof(State));
     new->max = MAX;
+    new->min = MIN;
     new->prev = NULL;
     new->init_pos[0] = r[0];
     new->init_pos[1] = c[0];
@@ -253,344 +266,242 @@ State *create_new_state(char grid[MAXSTR], char atual_player, char tipo_mov, int
 
     if (atual_player == 'r')
     {
-        new->min = distance_to_gooses(&(new->grid[i]), r[1], c[1]);
+        new->role = 'g';
+        if (tipo_mov == 's')
+        {
+            new->min = 1000;
+        }
+        else
+        {
+            new->min = distance_to_gooses(&(new->grid[i]), r[1], c[1]);
+        }
     }
     else
     {
-        new->min = goose_score(&(new->grid[i]), r, c) + rand() % 20;
+        new->role = 'r';
+        new->max = goose_score(&(new->grid[i]), r, c);
     }
 
     return new;
 }
 
-char *minmax(State *state, char atual_player)
+void minmax(StateList *list, State *state, char max, int depth)
 {
-    int depth = 0;
-    // int move_type = 'm';
-    // int init_pos[2];
-    char save_player = atual_player;
-    char *result = (char *)malloc(MAXSTR*sizeof(char));
-    result[0] = save_player;
-    result[1] = '.';
-    result[2] = '.';
-    result[3] = '.';
-    result[4] = '.';
-    result[5] = '.';
-    result[6] = '.';
+    //se chegou na profundidade 5, acabou
+    if (depth == 2)
+    {
+        return;
+    }
 
-    StateQueue *queue = (StateQueue *)malloc(sizeof(StateQueue));
-    queue->top = NULL;
+    int move_r[2];
+    int move_c[2];
 
-    push(queue, state);
-
-    while (queue->top)
-    {   
-        //pega o primeiro state da pilha
-        State *current = pop(queue);
-
-        //se chegou na profundidade 2, nao faz mais nada
-        if (depth == 2)
+    int k;
+    for (k = 0; k < MAXSTR; ++k)
+    {
+        if (state->grid[k] == '#')
         {
-            continue;
+            break;
         }
+    }
 
-        int move_r[2];
-        int move_c[2];
+    //acha a posicao da raposa
+    int *pos = find_r(&(state->grid[k]));
+    int r = pos[0];
+    int c = pos[1];
 
-        int k;
-        for (k = 0; k < MAXSTR; ++k)
+    // printf("init %d %d\n", r, c);
+
+    //se o estado atual for raposa
+    if (state->role == 'r')
+    {
+
+        move_r[0] = r;
+        move_c[0] = c;
+        // printf("raposa %d %d\n", r, c);
+
+        //faz um estado novo para cada nova posicao e calcula o minmax
+        //modificando o mapa atual com a nova posicao
+        // -1 0 esquerda
+        // 0 -1 cima
+        // 0 1 baixo
+        // 1 0 direita
+        for (int p_x = -1; p_x < 2; p_x++)
         {
-            if (current->grid[k] == '#')
+            for (int p_y = -1; p_y < 2; p_y++)
             {
-                break;
+                if (p_x * p_y == 0 && p_x != p_y)
+                {
+                    //verifica se a posicao q ta indo eh um ganso.
+                    //se for, a raposa pula pra proxima posicao livre, comendo o ganso
+                    char tipo_mov = 'm';
+                    int x = p_x;
+                    int y = p_y;
+                    if (state->grid[k+POS(r+p_x, c+p_y)] == 'g')
+                    {
+                        // printf("achei um ganso na nova pos %d %d\n", r+p_x, c+p_y);
+                        x *= 2;
+                        y *= 2;
+
+                        //se posicao nao tiver vazia, nao pula
+                        if (state->grid[k+POS(r+x, c+y)] != '-')
+                        {
+                            continue;
+                        }
+
+                        tipo_mov = 's';
+                    }
+                    move_r[1] = r+x;
+                    move_c[1] = c+y;
+                    // printf("pos: %d %d\n", move_r[1], move_c[1]);
+                    // printf("move: %c\n", tipo_mov);
+
+                    //verifica se a nova posicao eh valida
+                    if (pos_valida(move_r[1], move_c[1]))
+                    {
+                        // printf("mv: %c init: %d %d fim: %d %d\n", tipo_mov, move_r[0], move_c[0], move_r[1], move_c[1]);
+                        State *new = create_new_state(state->grid, state->role, tipo_mov, move_r, move_c, max);
+
+                        //quando sai da recursao, se for o joador MAX, atualiza o MAX com o maior valor calculado pelo MIN(mesma coisa com o MIN)
+                        if (state->role == max)
+                        {
+                            // printf("%d %d\n", new->min, state->max);
+                            if (new->min > state->max)
+                            {
+                                list->list[depth] = new;
+
+                                state->max = new->min;
+                            }
+                            //chama recursivamente o minmax para esse proximo estado criado
+                            minmax(list, new, max, depth+1);
+                        }
+                        else
+                        {
+                            // printf("point %d %d\n", new->max, state->min);
+                            if (new->max < state->min)
+                            {
+                                list->list[depth] = new;
+
+                                state->min = new->max;
+                            }
+                            //chama recursivamente o minmax para esse proximo estado criado
+                            minmax(list, new, max, depth+1);
+                        }
+
+                    }
+                }
             }
         }
-        int *pos = find_r(&(current->grid[k]));
-        int r = pos[0];
-        int c = pos[1];
+    }
+    //o movimento dos gansos.
+    else
+    {
+        //pega a posicao de todos os gansos
+        int *gooses_pos = gooses_to_move(&(state->grid[k]), r, c);
 
-        if (atual_player == 'r')
+        //para cada ganso, realiza os 4 movimentos possiveis para ele
+        for (int g = 0; g < 26; g+=2)
         {
+            int r = gooses_pos[g];
+            int c = gooses_pos[g+1];
 
             move_r[0] = r;
             move_c[0] = c;
-            // printf("init %d %d\n", r, c);
-
-            State *states[4];
-            for (int s = 0; s < 4; ++s)
-            {
-                states[s] = NULL;
-            }
-
-            //faz um estado novo para cada nova posicao e calcula o minmax
-            //modificando o mapa atual com a nova posicao
-            // -1 0
-            // 0 -1
-            // 0 1
-            // 1 0
-            int s_pos = 0;
+            // printf("ganso %d %d\n", r, c);
             for (int p_x = -1; p_x < 2; p_x++)
             {
                 for (int p_y = -1; p_y < 2; p_y++)
                 {
                     if (p_x * p_y == 0 && p_x != p_y)
                     {
-                        //verifica se a posicao q ta indo eh um ganso.
-                        //se for, a raposa pula pra proxima posicao livre, comendo o ganso
                         char tipo_mov = 'm';
-                        // printf("pos: %d %d\n", p_x, p_y);
-                        int x = p_x;
-                        int y = p_y;
-                        if (current->grid[k+POS(r+p_x, c+p_y)] == 'g')
+                        move_r[1] = r+p_x;
+                        move_c[1] = c+p_y;
+
+                        // printf("pos %c\n", state->grid[k+POS(r+p_x, c+p_y)]);
+                        if (state->grid[k+POS(r+p_x, c+p_y)] != '-')
                         {
-                            // printf("achei um ganso na nova pos\n");
-                            x *= 2;
-                            y *= 2;
-
-                            //se posicao nao tiver vazia, nao pula
-                            if (current->grid[k+POS(r+x, c+y)] != '-')
-                            {
-                                continue;
-                            }
-
-                            tipo_mov = 's';
+                            continue;
                         }
-                        move_r[1] = r+x;
-                        move_c[1] = c+y;
 
-                        if (pos_valida(move_r[1], move_c[1]))
+                        if(pos_valida(move_r[1], move_c[1]))
                         {
                             // printf("pos: %d %d\n", move_r[1], move_c[1]);
-                            states[s_pos++] = create_new_state(current->grid, atual_player, tipo_mov, move_r, move_c);
-                        }
-                    }
-                }
-            }
-
-            int min = states[0]->min;
-            int p = 0;
-            // printf("mv: %c val: %d\n", states[0]->move_type, states[0]->min);
-            //se for salto, prefere ele
-            if (states[0]->move_type != 's')
-            {
-                for (int i = 1; i < 4; ++i)
-                {
-                    // printf("mv: %c val: %d\n", states[i]->move_type, states[i]->min);
-                    if (states[i] && states[i]->min <= min)
-                    {
-                        min = states[i]->min;
-                        p = i;
-                        //se for salto, prefere ele
-                        if (states[i]->move_type == 's')
-                        {
-                            break;
-                        }
-                    }
-                }
-                
-                // while (1)
-                // {
-                //     p = rand() % 4;
-                //     if (states[p])
-                //     {
-                //         break;
-                //     }
-                // }
-            }
-
-            //se for profundidade 0, eh o primeiro movimento. entao salva no result.
-            if (depth == 0)
-            {
-                if (states[p]->move_type == 'm')
-                {
-                    result[1] = ' ';
-                    result[2] = states[p]->move_type;
-                    result[3] = ' ';
-                    result[4] = r+'0';
-                    result[5] = ' ';
-                    result[6] = c+'0';
-                }
-                else
-                {
-                    result[1] = ' ';
-                    result[2] = states[p]->move_type;
-                    result[3] = ' ';
-                    result[4] = '2';
-                    result[5] = ' ';
-                    result[6] = r+'0';
-                    result[7] = ' ';
-                    result[8] = c+'0';
-
-                }
-                // sprintf(result + strlen(result), " %c %d %d", move_type, init_pos[0], init_pos[1]);
-                // move_type = states[p]->move_type;
-                // init_pos[0] = move_r[0];
-                // init_pos[1] = move_c[1];
-            }
-
-            if (atual_player == save_player)
-            {
-                sprintf(result + strlen(result), " %d %d", states[p]->new_pos[0], states[p]->new_pos[1]);
-            }
-
-            push(queue, states[p]);
-            
-            atual_player = 'g';
-        }
-        //o movimento dos gansos.
-        else
-        {
-            //verifica os gansos que estao proximos da raposa.
-            int *gooses_pos = gooses_to_move(&(current->grid[k]), r, c);
-
-            int goose_idx = 0;
-            State *optimal_gooses[26];
-            for (int s = 0; s < 26; ++s)
-            {
-                optimal_gooses[s] = NULL;
-            }
-
-            //para cada posicao dos gansos, realiza os 4 movimentos possiveis para ele
-            for (int g = 0; g < 26; g+=2)
-            {
-                State *states[4];
-                for (int s = 0; s < 4; ++s)
-                {
-                    states[s] = NULL;
-                }
-                int s_pos = 0;
-                int r = gooses_pos[g];
-                int c = gooses_pos[g+1];
-
-                move_r[0] = r;
-                move_c[0] = c;
-                // printf("ganso %d %d\n", r, c);
-                for (int p_x = -1; p_x < 2; p_x++)
-                {
-                    for (int p_y = -1; p_y < 2; p_y++)
-                    {
-                        if (p_x * p_y == 0 && p_x != p_y)
-                        {
-                            char tipo_mov = 'm';
-                            move_r[1] = r+p_x;
-                            move_c[1] = c+p_y;
-
-                            // printf("pos %c\n", current->grid[k+POS(r+p_x, c+p_y)]);
-                            if (current->grid[k+POS(r+p_x, c+p_y)] != '-')
+                            State *new = create_new_state(state->grid, state->role, tipo_mov, move_r, move_c, max);
+                            
+                            //quando sai da recursao, se for o joador MAX, atualiza o MAX com o maior valor calculado pelo MIN(mesma coisa com o MIN)
+                            if (state->role == max)
                             {
-                                continue;
+                                if (list->list[depth] && list->list[depth]->move_type == 's')
+                                {
+                                    
+                                }
+                                // printf("%d %d\n", new->min, state->max);
+                                if (new->min > state->max)
+                                {
+                                    list->list[depth] = new;
+                                    
+                                    state->max = new->min;
+                                }
+                                //chama recursivamente o minmax para esse proximo estado criado
+                                minmax(list, new, max, depth+1);
                             }
-
-                            if(pos_valida(move_r[1], move_c[1]))
+                            else
                             {
-                                states[s_pos++] = create_new_state(current->grid, atual_player, tipo_mov, move_r, move_c);
+                                // printf("%d %d\n", new->min, state->max);
+                                if (new->max < state->min)
+                                {
+                                    list->list[depth] = new;
+
+                                    state->min = new->max;
+                                }
+                                //chama recursivamente o minmax para esse proximo estado criado
+                                minmax(list, new, max, depth+1);
                             }
                         }
                     }
                 }
-                if (!states[0])
-                {
-                    continue;
-                }
-
-                int min = states[0]->min;
-                int p = 0;
-                for (int i = 1; i < 4; ++i)
-                {
-                    // printf("mv: %c val: %d\n", states[i]->move_type, states[i]->min);
-                    if (states[i] && states[i]->min > min)
-                    {
-                        min = states[i]->min;
-                        p = i;
-                    }
-                }
-
-                if (min == AVANCA)
-                {
-                    while (1)
-                    {
-                        p = rand() % 4;
-                        if (states[p])
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                optimal_gooses[goose_idx] = (State *)malloc(sizeof(State));
-                strcpy(optimal_gooses[goose_idx]->grid, states[p]->grid);
-                optimal_gooses[goose_idx]->max = MAX;
-                optimal_gooses[goose_idx]->prev = NULL;
-                optimal_gooses[goose_idx]->init_pos[0] = states[p]->init_pos[0];
-                optimal_gooses[goose_idx]->init_pos[1] = states[p]->init_pos[1];
-                optimal_gooses[goose_idx]->new_pos[0] = states[p]->new_pos[0];
-                optimal_gooses[goose_idx]->new_pos[1] = states[p]->new_pos[1];
-                optimal_gooses[goose_idx]->move_type = states[p]->move_type;
-                optimal_gooses[goose_idx]->min = states[p]->min;
-                goose_idx++;
             }
-
-            int min = optimal_gooses[0]->min;
-            int p = 0;
-            for (int i = 1; i < 26; ++i)
-            {
-                if (optimal_gooses[i] && optimal_gooses[i]->min > min)
-                {
-                    min = optimal_gooses[i]->min;
-                    p = i;
-                }
-            }
-
-            if (min == AVANCA)
-            {
-                while (1)
-                {
-                    p = rand() % 26;
-                    if (optimal_gooses[p])
-                    {
-                        break;
-                    }
-                }
-            }
-            //se for profundidade 0, eh o primeiro movimento. entao salva no result.
-            if (depth == 0)
-            {
-                result[1] = ' ';
-                result[2] = optimal_gooses[p]->move_type;
-                result[3] = ' ';
-                result[4] = optimal_gooses[p]->init_pos[0]+'0';
-                result[5] = ' ';
-                result[6] = optimal_gooses[p]->init_pos[1]+'0';
-            }
-
-            if (atual_player == save_player)
-            {
-                sprintf(result + strlen(result), " %d %d", optimal_gooses[p]->new_pos[0], optimal_gooses[p]->new_pos[1]);
-            }
-
-            push(queue, optimal_gooses[p]);
-
-            atual_player = 'r';
         }
-
-        depth++;
-
-        free(current);   
     }
-    
-    sprintf(result + strlen(result), "\n");
-
-    printf("result: %s", result);
-    return result;
 }
 
-char *make_move(State *state, char role)
+char *make_move(State *state)
 {
-
     srand(time(NULL));   // Initialization, should only be called once.
 
+
+    StateQueue *queue = (StateQueue *)malloc(sizeof(StateQueue));
+    queue->top = NULL;
+    queue->depth = 4;
+    
+    StateList *list = (StateList *)malloc(sizeof(StateList));
+    list->size = 0;
+
+    for (int i = 0; i < 3; i++)
+    {
+        list->list[i] = NULL;
+    }
+
+    minmax(list, state, state->role, 0);
+
     char *line = (char *)malloc(MAXSTR*sizeof(char));
-    line = minmax(state, role);
+
+    //se o movimento foi salto, faz o minmax de novo pra ver se pode saltar novamente
+    if (list->list[0]->move_type == 's')
+    {
+        sprintf(line, "%c %c 2 %d %d %d %d", state->role, list->list[0]->move_type, \
+            list->list[0]->init_pos[0], list->list[0]->init_pos[1], \
+            list->list[0]->new_pos[0], list->list[0]->new_pos[1]);
+    }
+    else
+    {
+        sprintf(line, "%c %c %d %d %d %d", state->role, list->list[0]->move_type, \
+            list->list[0]->init_pos[0], list->list[0]->init_pos[1], \
+            list->list[0]->new_pos[0], list->list[0]->new_pos[1]);
+    }
+    
+    printf("%s\n", line);
 
     return line;
 }
